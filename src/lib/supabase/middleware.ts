@@ -7,6 +7,13 @@ import { isSupabaseConfigured } from "./env";
 const PROTECTED = ["/account", "/admin", "/wishlist"];
 /** Routes that require an admin. */
 const ADMIN_ONLY = ["/admin"];
+/** Public account routes — never gated, even though they live under /account. */
+const PUBLIC_ACCOUNT = [
+  "/account/login",
+  "/account/register",
+  "/account/forgot-password",
+  "/account/reset-password",
+];
 /** Auth pages a signed-in user should be redirected away from. */
 const AUTH_PAGES = ["/account/login", "/account/register"];
 
@@ -49,11 +56,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
+  const isPublicAccount = PUBLIC_ACCOUNT.some((p) => pathname.startsWith(p));
+  const isProtected =
+    PROTECTED.some((p) => pathname.startsWith(p)) && !isPublicAccount;
   const isAuthPage = AUTH_PAGES.some((p) => pathname.startsWith(p));
 
   // Not signed in → bounce protected routes to login (preserve return path).
-  if (!user && isProtected && !isAuthPage) {
+  if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = "/account/login";
     url.searchParams.set("redirect", pathname);
