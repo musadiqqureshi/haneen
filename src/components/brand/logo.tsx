@@ -1,4 +1,24 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
+
+/**
+ * LogoImage — the real Haneen Grace horizontal logo (champagne gold on ivory).
+ * Used in the header/drawer where the brand sits on an ivory surface. The
+ * `mix-blend-multiply` lets the logo's warm paper background melt into the
+ * page ivory so no rectangle is visible, while the gold mark stays crisp.
+ */
+export function LogoImage({ className }: { className?: string }) {
+  return (
+    <Image
+      src="/brand/logo.png"
+      alt="Haneen Grace — Luxury Pret • Modest Wear"
+      width={640}
+      height={229}
+      priority
+      className={cn("h-auto w-auto mix-blend-multiply", className)}
+    />
+  );
+}
 
 /**
  * HANEEN GRACE brand logo — reproduced as inline SVG so it renders crisply at

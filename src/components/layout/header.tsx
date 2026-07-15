@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react";
-import { Logo } from "@/components/brand/logo";
+import { LogoImage } from "@/components/brand/logo";
 import { mainNav, shopMenu } from "@/lib/nav";
 import { useCart, cartCount } from "@/lib/store/cart";
 import { useWishlist } from "@/lib/store/wishlist";
@@ -74,7 +74,7 @@ export function Header() {
               aria-label="Haneen Grace home"
               className="shrink-0"
             >
-              <Logo className="scale-90 sm:scale-100" />
+              <LogoImage className="h-11 sm:h-12" />
             </Link>
 
             {/* Right: icons */}
@@ -139,7 +139,7 @@ export function Header() {
           )}
         >
           <div className="flex items-center justify-between border-b border-line px-6 py-5">
-            <Logo className="scale-90" />
+            <LogoImage className="h-10" />
             <button aria-label="Close menu" onClick={() => setMobileOpen(false)}>
               <X className="h-5 w-5 text-ink" strokeWidth={1.5} />
             </button>
