@@ -183,3 +183,148 @@ body {
 .animate-marquee {
   animation: marquee 28s linear infinite;
 }
+
+/* ============================================================
+   Moving brand gradient (exact palette: ivory → beige → blush → gold)
+   ============================================================ */
+@keyframes brandGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+.brand-gradient {
+  background: linear-gradient(
+    120deg,
+    #faf8f5 0%,
+    #f5eee6 22%,
+    #f7e7e6 44%,
+    #f3ead9 66%,
+    #f5eee6 82%,
+    #faf8f5 100%
+  );
+  background-size: 260% 260%;
+  animation: brandGradient 16s var(--ease-lux) infinite;
+}
+/* Deeper variant with champagne shimmer for feature panels */
+.brand-gradient-rich {
+  background: linear-gradient(
+    120deg,
+    #f5eee6 0%,
+    #f7e7e6 20%,
+    #f3ead9 40%,
+    #e7d4b4 55%,
+    #f7e7e6 75%,
+    #faf8f5 100%
+  );
+  background-size: 280% 280%;
+  animation: brandGradient 18s var(--ease-lux) infinite;
+}
+
+/* ============================================================
+   Floating gold particles (luxury dust)
+   ============================================================ */
+.particle-field {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  bottom: -12px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(231, 212, 180, 0.95),
+    rgba(212, 180, 131, 0.55) 45%,
+    rgba(212, 180, 131, 0) 72%
+  );
+  animation: floatUp linear infinite;
+  will-change: transform, opacity;
+}
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.65;
+  }
+  50% {
+    transform: translateY(-52vh) translateX(14px) scale(0.85);
+  }
+  88% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-108vh) translateX(-10px) scale(0.55);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   Scroll-reveal + entrance helpers (fast + modern)
+   ============================================================ */
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.reveal {
+  opacity: 0;
+}
+.reveal.is-visible {
+  animation: revealUp 0.55s var(--ease-lux) forwards;
+}
+
+/* Shimmer sweep (loader + skeletons) */
+@keyframes shimmerSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* Loader ring spin + logo pulse */
+@keyframes ringSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes softPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-gradient,
+  .brand-gradient-rich,
+  .particle,
+  .animate-marquee {
+    animation: none !important;
+  }
+  .reveal {
+    opacity: 1;
+  }
+}

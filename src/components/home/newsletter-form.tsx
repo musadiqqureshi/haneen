@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, Check } from "lucide-react";
 
 export function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -18,8 +17,8 @@ export function NewsletterForm() {
 
   if (done) {
     return (
-      <div className="flex items-center gap-3 rounded-[2px] border border-gold-300 bg-ivory px-5 py-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-300 text-white">
+      <div className="flex items-center gap-3 rounded-full border border-gold-300 bg-ivory/90 px-6 py-4 shadow-sm backdrop-blur">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gold-300 text-white">
           <Check className="h-4 w-4" />
         </span>
         <p className="text-sm text-ink">
@@ -30,19 +29,29 @@ export function NewsletterForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row">
-      <input
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Your email address"
-        aria-label="Email address"
-        className="h-12 flex-1 border border-line bg-ivory px-4 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-gold-400"
-      />
-      <Button type="submit" variant="dark" size="md">
-        Subscribe
-      </Button>
+    <form onSubmit={onSubmit} className="w-full">
+      {/* Single elegant pill: input + inline gold action */}
+      <div className="group flex items-center gap-2 rounded-full border border-gold-300/70 bg-ivory/90 p-1.5 shadow-sm backdrop-blur transition-colors focus-within:border-gold-400">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email address"
+          aria-label="Email address"
+          className="h-11 flex-1 bg-transparent px-5 text-sm text-ink outline-none placeholder:text-ink-muted"
+        />
+        <button
+          type="submit"
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-ink px-6 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-ivory transition-all duration-300 hover:bg-gold-600 active:scale-95"
+        >
+          Subscribe
+          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-focus-within:translate-x-0.5" />
+        </button>
+      </div>
+      <p className="mt-3 pl-2 text-xs text-ink-muted">
+        No spam, only grace. Unsubscribe anytime.
+      </p>
     </form>
   );
 }

@@ -41,8 +41,8 @@ export function Header() {
       >
         <div className="container-lux">
           <div className="flex h-18 items-center justify-between gap-4 py-3">
-            {/* Left: mobile menu + desktop nav */}
-            <div className="flex flex-1 items-center gap-6">
+            {/* Left: mobile menu + logo */}
+            <div className="flex items-center gap-3">
               <button
                 aria-label="Open menu"
                 className="lg:hidden text-ink hover:text-gold-600 transition-colors"
@@ -50,35 +50,35 @@ export function Header() {
               >
                 <Menu className="h-5 w-5" strokeWidth={1.5} />
               </button>
-              <nav className="hidden lg:flex items-center gap-7">
-                {mainNav.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "link-underline text-[0.72rem] font-medium uppercase tracking-[0.16em] transition-colors",
-                      link.label === "Sale"
-                        ? "text-gold-600"
-                        : "text-ink hover:text-gold-600",
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
+              <Link
+                href="/"
+                aria-label="Haneen Grace home"
+                className="shrink-0"
+              >
+                <LogoImage className="h-10 sm:h-12" />
+              </Link>
             </div>
 
-            {/* Center: logo */}
-            <Link
-              href="/"
-              aria-label="Haneen Grace home"
-              className="shrink-0"
-            >
-              <LogoImage className="h-11 sm:h-12" />
-            </Link>
+            {/* Center: desktop nav */}
+            <nav className="hidden lg:flex items-center gap-8">
+              {mainNav.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "link-underline text-[0.72rem] font-medium uppercase tracking-[0.16em] transition-colors",
+                    link.label === "Sale"
+                      ? "text-gold-600"
+                      : "text-ink hover:text-gold-600",
+                  )}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
 
             {/* Right: icons */}
-            <div className="flex flex-1 items-center justify-end gap-4 sm:gap-5">
+            <div className="flex items-center justify-end gap-4 sm:gap-5">
               <button
                 aria-label="Search"
                 className="hidden sm:inline-flex text-ink hover:text-gold-600 transition-colors"

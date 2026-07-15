@@ -8,20 +8,25 @@ import { NewsletterForm } from "@/components/home/newsletter-form";
 export function Footer() {
   return (
     <footer className="mt-24 border-t border-line bg-beige">
-      {/* Newsletter strip */}
-      <div className="border-b border-line/70">
-        <div className="container-lux grid gap-8 py-14 md:grid-cols-2 md:items-center">
+      {/* Newsletter strip — moving brand gradient */}
+      <div className="relative overflow-hidden border-b border-line/70">
+        <div className="brand-gradient-rich pointer-events-none absolute inset-0" />
+        <div className="pointer-events-none absolute inset-0 bg-ivory/30" />
+        <div className="container-lux relative grid gap-10 py-16 md:grid-cols-2 md:items-center">
           <div>
             <p className="eyebrow">Join the Grace List</p>
-            <h3 className="mt-3 font-display text-3xl text-ink">
-              Be the first to know
+            <h3 className="mt-3 font-display text-3xl leading-tight text-ink sm:text-4xl">
+              A little luxury,
+              <br className="hidden sm:block" /> straight to your inbox
             </h3>
-            <p className="mt-2 max-w-md text-sm text-ink-soft">
-              Subscribe for early access to new collections, private sales and
-              styling notes — a little luxury in your inbox.
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
+              Be the first to know about new collections, private sales and
+              styling notes — thoughtfully curated, never crowded.
             </p>
           </div>
-          <NewsletterForm />
+          <div className="w-full max-w-md justify-self-start md:justify-self-end">
+            <NewsletterForm />
+          </div>
         </div>
       </div>
 

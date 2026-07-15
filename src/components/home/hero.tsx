@@ -17,9 +17,9 @@ export function Hero() {
   return (
     <section className="relative bg-ivory">
       <motion.div
-        initial={{ opacity: 0, scale: 1.02 }}
+        initial={{ opacity: 0, scale: 1.03 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.1, ease }}
+        transition={{ duration: 0.7, ease }}
         className="relative w-full overflow-hidden"
       >
         <Link href="/shop/sale" aria-label="Shop the Season End Sale — up to 40% off">
@@ -39,9 +39,9 @@ export function Hero() {
 
       {/* CTA row */}
       <motion.div
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.35, ease }}
+        transition={{ duration: 0.5, delay: 0.25, ease }}
         className="container-lux flex flex-col items-center gap-5 py-9 text-center sm:py-11"
       >
         <p className="eyebrow">Timeless elegance, now at irresistible prices</p>
