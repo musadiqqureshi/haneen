@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHero } from "@/components/ui/page-hero";
 import { ShopGrid } from "@/components/shop/shop-grid";
 import { categories, getCategory } from "@/lib/data/categories";
-import { getProductsByCategory } from "@/lib/data/products";
+import { getProductsByCategory } from "@/lib/data/catalog";
 
 export function generateStaticParams() {
   return categories.map((c) => ({ category: c.slug }));
@@ -32,7 +32,7 @@ export default async function CategoryPage({
   const cat = getCategory(category);
   if (!cat) notFound();
 
-  const items = getProductsByCategory(cat.slug);
+  const items = await getProductsByCategory(cat.slug);
 
   return (
     <>

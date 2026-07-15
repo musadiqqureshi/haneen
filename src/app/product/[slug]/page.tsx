@@ -5,11 +5,16 @@ import { ProductDetail } from "@/components/product/product-detail";
 import { ProductReviews } from "@/components/product/product-reviews";
 import { ProductCard } from "@/components/product/product-card";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { products, getProduct, relatedProducts } from "@/lib/data/products";
+import {
+  getProductBySlug,
+  getRelatedProducts,
+  getAllSlugs,
+} from "@/lib/data/catalog";
 import { getReviews } from "@/lib/data/reviews";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  const slugs = await getAllSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
@@ -18,12 +23,17 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return { title: "Product" };
+  const image = product.images?.[0]?.url;
   return {
     title: product.title,
     description: product.shortDescription,
-    openGraph: { title: product.title, description: product.shortDescription },
+    openGraph: {
+      title: product.title,
+      description: product.shortDescription,
+      images: image ? [{ url: image }] : undefined,
+    },
   };
 }
 
@@ -33,10 +43,10 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const related = relatedProducts(product);
+  const related = await getRelatedProducts(product);
 
   // Schema.org product markup
   const jsonLd = {
@@ -45,6 +55,7 @@ export default async function ProductPage({
     name: product.title,
     description: product.shortDescription,
     sku: product.sku,
+    image: product.images?.map((i) => i.url) ?? [],
     brand: { "@type": "Brand", name: "Haneen Grace" },
     aggregateRating: {
       "@type": "AggregateRating",

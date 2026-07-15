@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Heart, ShoppingBag, Star } from "lucide-react";
 import type { Product } from "@/types";
-import { FabricSwatch } from "@/components/product/fabric-swatch";
+import { ProductImage } from "@/components/product/product-image";
 import { useWishlist } from "@/lib/store/wishlist";
 import { useCart } from "@/lib/store/cart";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
@@ -25,7 +25,7 @@ export function ProductCard({ product }: { product: Product }) {
       slug: product.slug,
       title: product.title,
       price: product.salePrice ?? product.price,
-      size: product.sizes[0],
+      size: product.sizes[0] ?? "Unstitched",
       color: product.colors[0]?.name ?? "Default",
       swatch: product.swatch,
       quantity: 1,
@@ -36,8 +36,13 @@ export function ProductCard({ product }: { product: Product }) {
     <div className="group relative flex flex-col">
       <div className="relative aspect-[3/4] overflow-hidden rounded-[2px] bg-beige">
         <Link href={`/product/${product.slug}`} aria-label={product.title}>
-          <div className="h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
-            <FabricSwatch swatch={product.swatch} label={product.colors[0]?.name} />
+          <div className="relative h-full w-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105">
+            <ProductImage
+              images={product.images}
+              swatch={product.swatch}
+              alt={product.title}
+              label={product.colors[0]?.name}
+            />
           </div>
         </Link>
 

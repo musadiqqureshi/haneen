@@ -42,9 +42,17 @@ export interface Product {
   newArrival: boolean;
   rating: number;
   reviewCount: number;
-  /** image placeholder color pairs used until real photos are added */
+  /** image placeholder color pairs used as a fallback before/without photos */
   swatch: [string, string];
+  /** real product photos (Supabase Storage); first is primary */
+  images?: ProductImage[];
   tags: string[];
+}
+
+export interface ProductImage {
+  url: string;
+  alt?: string;
+  is_primary?: boolean;
 }
 
 export interface CartItem {

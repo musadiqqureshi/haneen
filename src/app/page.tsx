@@ -5,9 +5,13 @@ import { ProductRail } from "@/components/home/product-rail";
 import { SaleBanner } from "@/components/home/sale-banner";
 import { Testimonials } from "@/components/home/testimonials";
 import { InstagramFeed } from "@/components/home/instagram-feed";
-import { newArrivals, bestSellers } from "@/lib/data/products";
+import { getNewArrivals, getBestSellers } from "@/lib/data/catalog";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [newArrivals, bestSellers] = await Promise.all([
+    getNewArrivals(8),
+    getBestSellers(8),
+  ]);
   return (
     <>
       <Hero />

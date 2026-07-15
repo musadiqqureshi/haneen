@@ -11,9 +11,10 @@ import {
   RefreshCw,
   ShieldCheck,
   Check,
+  Scissors,
 } from "lucide-react";
 import type { Product } from "@/types";
-import { FabricSwatch } from "@/components/product/fabric-swatch";
+import { ProductImage } from "@/components/product/product-image";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/store/cart";
 import { useWishlist } from "@/lib/store/wishlist";
@@ -22,7 +23,6 @@ import { cn, formatPrice, discountPercent } from "@/lib/utils";
 
 export function ProductDetail({ product }: { product: Product }) {
   const hydrated = useHydrated();
-  const [size, setSize] = useState<string>(product.sizes[0]);
   const [color, setColor] = useState(product.colors[0]?.name ?? "Default");
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
@@ -36,10 +36,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const lowStock = product.stock > 0 && product.stock <= 5;
   const activePrice = product.salePrice ?? product.price;
 
-  // gallery derived from colour variants (real photos land here later)
-  const gallery = product.colors.length
-    ? product.colors.map((c) => [c.hex, product.swatch[1]] as [string, string])
-    : [product.swatch];
+  const images = product.images ?? [];
   const [activeImg, setActiveImg] = useState(0);
 
   function handleAdd() {
@@ -49,7 +46,7 @@ export function ProductDetail({ product }: { product: Product }) {
       slug: product.slug,
       title: product.title,
       price: activePrice,
-      size,
+      size: "Unstitched",
       color,
       swatch: product.swatch,
       quantity: qty,
@@ -62,25 +59,37 @@ export function ProductDetail({ product }: { product: Product }) {
     <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
       {/* Gallery */}
       <div className="flex flex-col-reverse gap-4 sm:flex-row">
-        <div className="flex gap-3 sm:flex-col">
-          {gallery.map((sw, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveImg(i)}
-              aria-label={`View image ${i + 1}`}
-              className={cn(
-                "h-20 w-16 shrink-0 overflow-hidden rounded-[2px] border transition-colors",
-                activeImg === i ? "border-gold-400" : "border-line",
-              )}
-            >
-              <FabricSwatch swatch={sw} />
-            </button>
-          ))}
-        </div>
+        {images.length > 1 && (
+          <div className="flex gap-3 sm:flex-col">
+            {images.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveImg(i)}
+                aria-label={`View image ${i + 1}`}
+                className={cn(
+                  "relative h-20 w-16 shrink-0 overflow-hidden rounded-[2px] border transition-colors",
+                  activeImg === i ? "border-gold-400" : "border-line",
+                )}
+              >
+                <ProductImage
+                  images={images}
+                  index={i}
+                  swatch={product.swatch}
+                  sizes="64px"
+                />
+              </button>
+            ))}
+          </div>
+        )}
         <div className="relative aspect-[3/4] flex-1 overflow-hidden rounded-[2px] bg-beige">
-          <FabricSwatch
-            swatch={gallery[activeImg]}
-            label={product.colors[activeImg]?.name}
+          <ProductImage
+            images={images}
+            index={activeImg}
+            swatch={product.swatch}
+            alt={product.title}
+            label={product.colors[0]?.name}
+            sizes="(max-width: 1024px) 100vw, 45vw"
+            priority
           />
           {off > 0 && (
             <span className="absolute left-4 top-4 bg-gold-500 px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-white">
@@ -135,13 +144,10 @@ export function ProductDetail({ product }: { product: Product }) {
             Colour — <span className="text-ink-soft">{color}</span>
           </p>
           <div className="mt-3 flex gap-2.5">
-            {product.colors.map((c, i) => (
+            {product.colors.map((c) => (
               <button
                 key={c.name}
-                onClick={() => {
-                  setColor(c.name);
-                  setActiveImg(i);
-                }}
+                onClick={() => setColor(c.name)}
                 title={c.name}
                 className={cn(
                   "h-9 w-9 rounded-full border-2 p-0.5 transition-all",
@@ -157,31 +163,17 @@ export function ProductDetail({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* size */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-ink">
-              Size
+        {/* unstitched note (all pieces are unstitched fabric) */}
+        <div className="mt-6 flex items-start gap-3 rounded-[2px] border border-gold-200 bg-gold-50/60 px-4 py-3.5">
+          <Scissors className="mt-0.5 h-4 w-4 shrink-0 text-gold-600" strokeWidth={1.5} />
+          <div>
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-ink">
+              Unstitched · Three-Piece
             </p>
-            <button className="text-xs text-gold-600 underline underline-offset-2">
-              Size Guide
-            </button>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2.5">
-            {product.sizes.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSize(s)}
-                className={cn(
-                  "min-w-12 border px-4 py-2.5 text-sm uppercase tracking-wide transition-colors",
-                  size === s
-                    ? "border-ink bg-ink text-ivory"
-                    : "border-line text-ink hover:border-gold-300",
-                )}
-              >
-                {s}
-              </button>
-            ))}
+            <p className="mt-1 text-sm text-ink-soft">
+              This is an unstitched fabric suit — shirt, trousers and dupatta —
+              ready to be tailored to your measurements.
+            </p>
           </div>
         </div>
 

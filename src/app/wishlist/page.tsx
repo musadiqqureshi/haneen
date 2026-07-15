@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
+import type { Product } from "@/types";
 import { useWishlist } from "@/lib/store/wishlist";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
-import { products } from "@/lib/data/products";
+import { getProducts } from "@/lib/data/catalog";
 import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +14,12 @@ export default function WishlistPage() {
   const hydrated = useHydrated();
   const ids = useWishlist((s) => s.ids);
   const clear = useWishlist((s) => s.clear);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    getProducts().then(setProducts).catch(() => setProducts([]));
+  }, []);
+
   const saved = hydrated ? products.filter((p) => ids.includes(p.id)) : [];
 
   return (
