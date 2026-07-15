@@ -40,9 +40,9 @@ export function Header() {
         )}
       >
         <div className="container-lux">
-          <div className="flex h-18 items-center justify-between gap-4 py-3">
-            {/* Left: mobile menu + logo */}
-            <div className="flex items-center gap-3">
+          <div className="relative flex h-18 items-center justify-between gap-4 py-3">
+            {/* Left: mobile menu + desktop logo */}
+            <div className="flex flex-1 items-center gap-3 lg:flex-none">
               <button
                 aria-label="Open menu"
                 className="lg:hidden text-ink hover:text-gold-600 transition-colors"
@@ -50,14 +50,24 @@ export function Header() {
               >
                 <Menu className="h-5 w-5" strokeWidth={1.5} />
               </button>
+              {/* Desktop: logo sits on the left */}
               <Link
                 href="/"
                 aria-label="Haneen Grace home"
-                className="shrink-0"
+                className="hidden shrink-0 lg:block"
               >
-                <LogoImage className="h-10 sm:h-12" />
+                <LogoImage className="h-12" />
               </Link>
             </div>
+
+            {/* Mobile: logo centered */}
+            <Link
+              href="/"
+              aria-label="Haneen Grace home"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 lg:hidden"
+            >
+              <LogoImage className="h-10" />
+            </Link>
 
             {/* Center: desktop nav */}
             <nav className="hidden lg:flex items-center gap-8">
@@ -78,7 +88,7 @@ export function Header() {
             </nav>
 
             {/* Right: icons */}
-            <div className="flex items-center justify-end gap-4 sm:gap-5">
+            <div className="flex flex-1 items-center justify-end gap-4 sm:gap-5 lg:flex-none">
               <button
                 aria-label="Search"
                 className="hidden sm:inline-flex text-ink hover:text-gold-600 transition-colors"

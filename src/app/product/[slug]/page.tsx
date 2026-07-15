@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ProductDetail } from "@/components/product/product-detail";
+import { ProductReviews } from "@/components/product/product-reviews";
 import { ProductCard } from "@/components/product/product-card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { products, getProduct, relatedProducts } from "@/lib/data/products";
+import { getReviews } from "@/lib/data/reviews";
 
 export function generateStaticParams() {
   return products.map((p) => ({ slug: p.slug }));
@@ -49,6 +51,17 @@ export default async function ProductPage({
       ratingValue: product.rating,
       reviewCount: product.reviewCount,
     },
+    review: getReviews(product, 5).map((r) => ({
+      "@type": "Review",
+      author: { "@type": "Person", name: r.author },
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: r.rating,
+        bestRating: 5,
+      },
+      name: r.title,
+      reviewBody: r.body,
+    })),
     offers: {
       "@type": "Offer",
       priceCurrency: "PKR",
@@ -81,6 +94,8 @@ export default async function ProductPage({
 
         <ProductDetail product={product} />
       </div>
+
+      <ProductReviews product={product} />
 
       {related.length > 0 && (
         <section className="border-t border-line bg-beige py-20">
