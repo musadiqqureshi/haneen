@@ -42,14 +42,17 @@ end $$;
 
 -- ---------- Helper: is the current user an admin? ---------------------------
 -- SECURITY DEFINER so policies can call it without recursive RLS on profiles.
+-- plpgsql (not sql) so the profiles reference is resolved at run time — this
+-- function is created before the profiles table below.
 create or replace function public.is_admin()
 returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (
+language plpgsql stable security definer set search_path = public as $$
+begin
+  return exists (
     select 1 from public.profiles
     where id = auth.uid() and role = 'admin'
   );
-$$;
+end $$;
 
 -- ============================================================================
 -- profiles  (1:1 with auth.users)
