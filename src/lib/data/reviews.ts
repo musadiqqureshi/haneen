@@ -151,7 +151,7 @@ export function getReviews(product: Product, count = 5): Review[] {
       body: pick(BODIES, rnd),
       date: pick(DATE_LABELS, rnd),
       verified: rnd() > 0.15,
-      size: product.sizes.length ? pick(product.sizes, rnd) : "M",
+      size: product.sizes.length ? pick(product.sizes, rnd) : "",
     });
   }
 

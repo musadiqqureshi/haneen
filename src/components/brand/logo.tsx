@@ -10,12 +10,12 @@ import { cn } from "@/lib/utils";
 export function LogoImage({ className }: { className?: string }) {
   return (
     <Image
-      src="/brand/logo.png"
+      src="/brand/logo-wordmark.png"
       alt="Haneen Grace — Luxury Pret • Modest Wear"
-      width={640}
-      height={229}
+      width={558}
+      height={110}
       priority
-      className={cn("h-auto w-auto mix-blend-multiply", className)}
+      className={cn("h-auto w-auto", className)}
     />
   );
 }
