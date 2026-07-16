@@ -124,7 +124,7 @@ export function ProductDetail({ product }: { product: Product }) {
         </div>
 
         <div className="mt-5 flex items-end gap-3">
-          <span className="font-display text-3xl text-ink">
+          <span className="font-sans text-3xl font-semibold tracking-tight text-ink tabular-nums">
             {formatPrice(activePrice)}
           </span>
           {product.salePrice && (

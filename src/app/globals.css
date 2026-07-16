@@ -13,15 +13,15 @@
   --color-taupe: #d8cfc4;
 
   /* Champagne gold scale */
-  --color-gold-50: #faf6ef;
-  --color-gold-100: #f3ead9;
-  --color-gold-200: #e7d4b4;
-  --color-gold-300: #d4b483; /* primary champagne gold */
-  --color-gold-400: #c9a56d;
-  --color-gold-500: #b8925a;
-  --color-gold-600: #a17b47;
-  --color-gold-700: #83633a;
-  --color-gold-800: #6a5030;
+  --color-gold-50: #f9f3e8;
+  --color-gold-100: #efe2c6;
+  --color-gold-200: #ddc38c;
+  --color-gold-300: #c3a04f; /* primary champagne gold — richer, deeper */
+  --color-gold-400: #b58f3f;
+  --color-gold-500: #9f7c37; /* buttons, badges, accents */
+  --color-gold-600: #85682e;
+  --color-gold-700: #6b5426;
+  --color-gold-800: #55431f;
 
   /* Warm ink (text) */
   --color-ink: #2f2a24;
@@ -107,7 +107,7 @@ body {
 
 /* Gold gradient text (matches logo foil) */
 .text-gold-foil {
-  background: linear-gradient(105deg, #c9a56d 0%, #e7d4b4 45%, #b8925a 100%);
+  background: linear-gradient(105deg, #b28b34 0%, #dcc078 45%, #916f2b 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
