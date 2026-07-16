@@ -2,6 +2,10 @@
  * Hand-written Supabase schema types.
  * Mirrors supabase/migrations/0001_initial_schema.sql.
  *
+ * NOTE: Row shapes are `type` aliases (not `interface`) on purpose — supabase-js
+ * requires each table's Row to satisfy `Record<string, unknown>`, which
+ * interfaces do not, so using interfaces makes query results infer as `never`.
+ *
  * Once the project is live you can regenerate the authoritative version with:
  *   npx supabase gen types typescript --project-id <ref> > src/lib/supabase/database.types.ts
  */
@@ -19,22 +23,22 @@ export type PaymentMethod = "cod" | "advance";
 export type PaymentStatus = "unpaid" | "partial" | "paid" | "refunded" | "failed";
 export type ReviewStatus = "published" | "pending" | "rejected";
 
-export interface ProductColor {
+export type ProductColor = {
   name: string;
   hex: string;
-}
-export interface ProductImage {
+};
+export type ProductImage = {
   url: string;
   alt?: string;
   is_primary?: boolean;
-}
+};
 
-interface Timestamps {
+type Timestamps = {
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface ProfileRow extends Timestamps {
+export type ProfileRow = Timestamps & {
   id: string;
   full_name: string | null;
   email: string | null;
@@ -42,9 +46,9 @@ export interface ProfileRow extends Timestamps {
   avatar_url: string | null;
   role: UserRole;
   marketing_opt_in: boolean;
-}
+};
 
-export interface AddressRow extends Timestamps {
+export type AddressRow = Timestamps & {
   id: string;
   user_id: string;
   label: string | null;
@@ -57,9 +61,9 @@ export interface AddressRow extends Timestamps {
   postal_code: string | null;
   country: string;
   is_default: boolean;
-}
+};
 
-export interface CategoryRow extends Timestamps {
+export type CategoryRow = Timestamps & {
   id: string;
   slug: string;
   name: string;
@@ -70,9 +74,9 @@ export interface CategoryRow extends Timestamps {
   image_url: string | null;
   sort_order: number;
   is_active: boolean;
-}
+};
 
-export interface ProductRow extends Timestamps {
+export type ProductRow = Timestamps & {
   id: string;
   slug: string;
   sku: string | null;
@@ -98,9 +102,9 @@ export interface ProductRow extends Timestamps {
   tags: string[];
   seo: Record<string, unknown>;
   is_active: boolean;
-}
+};
 
-export interface ReviewRow extends Timestamps {
+export type ReviewRow = Timestamps & {
   id: string;
   product_id: string;
   user_id: string | null;
@@ -112,15 +116,15 @@ export interface ReviewRow extends Timestamps {
   size: string | null;
   verified: boolean;
   status: ReviewStatus;
-}
+};
 
-export interface WishlistRow {
+export type WishlistRow = {
   user_id: string;
   product_id: string;
   created_at: string;
-}
+};
 
-export interface CouponRow extends Timestamps {
+export type CouponRow = Timestamps & {
   id: string;
   code: string;
   description: string | null;
@@ -132,18 +136,18 @@ export interface CouponRow extends Timestamps {
   starts_at: string | null;
   expires_at: string | null;
   is_active: boolean;
-}
+};
 
-export interface OrderShipping {
+export type OrderShipping = {
   line1: string;
   line2?: string | null;
   city: string;
   province?: string | null;
   postal_code?: string | null;
   country: string;
-}
+};
 
-export interface OrderRow extends Timestamps {
+export type OrderRow = Timestamps & {
   id: string;
   order_number: string;
   user_id: string | null;
@@ -161,9 +165,9 @@ export interface OrderRow extends Timestamps {
   payment_status: PaymentStatus;
   advance_amount: number;
   notes: string | null;
-}
+};
 
-export interface OrderItemRow {
+export type OrderItemRow = {
   id: string;
   order_id: string;
   product_id: string | null;
@@ -176,9 +180,9 @@ export interface OrderItemRow {
   quantity: number;
   line_total: number;
   created_at: string;
-}
+};
 
-export interface PaymentRow extends Timestamps {
+export type PaymentRow = Timestamps & {
   id: string;
   order_id: string;
   method: PaymentMethod;
@@ -187,9 +191,9 @@ export interface PaymentRow extends Timestamps {
   reference: string | null;
   proof_url: string | null;
   paid_at: string | null;
-}
+};
 
-export interface BannerRow extends Timestamps {
+export type BannerRow = Timestamps & {
   id: string;
   title: string | null;
   subtitle: string | null;
@@ -200,23 +204,23 @@ export interface BannerRow extends Timestamps {
   is_active: boolean;
   starts_at: string | null;
   ends_at: string | null;
-}
+};
 
-export interface NewsletterRow {
+export type NewsletterRow = {
   id: string;
   email: string;
   is_subscribed: boolean;
   source: string | null;
   created_at: string;
-}
+};
 
-export interface SettingRow {
+export type SettingRow = {
   key: string;
   value: Record<string, unknown>;
   updated_at: string;
-}
+};
 
-export interface ActivityLogRow {
+export type ActivityLogRow = {
   id: string;
   actor_id: string | null;
   action: string;
@@ -224,16 +228,18 @@ export interface ActivityLogRow {
   entity_id: string | null;
   meta: Record<string, unknown>;
   created_at: string;
-}
+};
 
-/** Generic table helper: Insert allows omitting server-defaulted columns. */
+/** Generic table helper. `Relationships: []` and `type`-alias Rows are both
+ * required for supabase-js to accept this as a valid schema. */
 type TableCfg<Row> = {
   Row: Row;
   Insert: Partial<Row>;
   Update: Partial<Row>;
+  Relationships: [];
 };
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: TableCfg<ProfileRow>;
@@ -263,4 +269,4 @@ export interface Database {
       review_status: ReviewStatus;
     };
   };
-}
+};

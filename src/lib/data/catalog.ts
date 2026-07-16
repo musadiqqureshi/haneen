@@ -10,11 +10,6 @@ import * as mock from "./products";
  * async; server components await them directly.
  */
 
-const SELECT =
-  "id,slug,title,short_description,description,price,sale_price,sku,category_slug," +
-  "collections,sizes,colors,swatch,images,stock,featured,best_seller,new_arrival," +
-  "rating,review_count,tags";
-
 /** Map a DB row to the app Product shape used across the UI. */
 function mapRow(r: ProductRow): Product {
   const swatch = (r.swatch ?? []) as string[];
@@ -45,7 +40,7 @@ function mapRow(r: ProductRow): Product {
 
 /** Base active-products query. */
 function base() {
-  return readClient().from("products").select(SELECT).eq("is_active", true);
+  return readClient().from("products").select("*").eq("is_active", true);
 }
 
 async function collect(
@@ -70,12 +65,12 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   if (!isSupabaseConfigured()) return mock.getProduct(slug) ?? null;
   const { data, error } = await readClient()
     .from("products")
-    .select(SELECT)
+    .select("*")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
   if (error || !data) return null;
-  return mapRow(data as ProductRow);
+  return mapRow(data);
 }
 
 export async function getProductsByCategory(slug: string): Promise<Product[]> {
