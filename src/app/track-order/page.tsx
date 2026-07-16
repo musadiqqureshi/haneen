@@ -1,96 +1,181 @@
 "use client";
 
-import { useState } from "react";
-import { Package, Truck, CheckCircle2, Clock } from "lucide-react";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import { Package, Truck, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { trackOrderAction, type TrackedOrder } from "@/lib/orders/actions";
+import { formatPrice, cn } from "@/lib/utils";
 
-const steps = [
-  { icon: CheckCircle2, label: "Order Confirmed", done: true },
-  { icon: Package, label: "Preparing", done: true },
-  { icon: Truck, label: "Out for Delivery", done: false },
-  { icon: CheckCircle2, label: "Delivered", done: false },
+const STEPS = [
+  { icon: CheckCircle2, label: "Order Confirmed" },
+  { icon: Package, label: "Preparing" },
+  { icon: Truck, label: "Out for Delivery" },
+  { icon: CheckCircle2, label: "Delivered" },
 ];
 
+const STATUS_STEP: Record<string, number> = {
+  pending: 0,
+  confirmed: 0,
+  processing: 1,
+  shipped: 2,
+  delivered: 3,
+};
+
+function TrackButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" variant="dark" size="md" disabled={pending}>
+      {pending ? "Tracking…" : "Track"}
+    </Button>
+  );
+}
+
 export default function TrackOrderPage() {
-  const [tracked, setTracked] = useState(false);
+  const [state, action] = useActionState(trackOrderAction, {} as {
+    order?: TrackedOrder;
+    error?: string;
+  });
+  const order = state.order;
+  const cancelled = order && ["cancelled", "refunded"].includes(order.status);
+  const currentStep = order ? STATUS_STEP[order.status] ?? 0 : 0;
 
   return (
     <>
       <PageHero
         eyebrow="Order Status"
         title="Track Your Order"
-        description="Enter your order number to see where your grace is on its way."
+        description="Enter your order number and email to see where your grace is on its way."
         breadcrumb={[{ label: "Home", href: "/" }, { label: "Track Order" }]}
       />
       <div className="container-lux max-w-2xl py-14">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setTracked(true);
-          }}
-          className="flex flex-col gap-4 sm:flex-row"
-        >
+        <form action={action} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
           <input
+            name="orderNumber"
             required
-            placeholder="Order number (e.g. HG-A1B2C3)"
-            className="h-12 flex-1 border border-line bg-ivory px-4 text-sm text-ink outline-none focus:border-gold-400"
+            placeholder="Order no. (e.g. HG-260716-A1B2)"
+            className="h-12 border border-line bg-ivory px-4 text-sm text-ink outline-none focus:border-gold-400"
           />
-          <Button type="submit" variant="dark" size="md">
-            Track
-          </Button>
+          <input
+            name="email"
+            type="email"
+            required
+            placeholder="Email on the order"
+            className="h-12 border border-line bg-ivory px-4 text-sm text-ink outline-none focus:border-gold-400"
+          />
+          <TrackButton />
         </form>
 
-        {tracked && (
+        {state.error && (
+          <div className="mt-6 flex items-start gap-2.5 rounded-[2px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{state.error}</span>
+          </div>
+        )}
+
+        {order && (
           <div className="mt-12 rounded-[2px] border border-line bg-beige p-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-[0.7rem] uppercase tracking-[0.16em] text-ink-muted">
-                  Estimated Delivery
+                  Order {order.orderNumber}
                 </p>
-                <p className="mt-1 font-display text-2xl text-ink">3–5 business days</p>
+                <p className="mt-1 font-display text-2xl text-ink">
+                  {formatPrice(order.total)}
+                </p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  {order.paymentMethod === "cod"
+                    ? "Cash on Delivery"
+                    : "Advance Payment"}{" "}
+                  ·{" "}
+                  {new Date(order.createdAt).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-300 px-3 py-1 text-xs font-medium text-white">
-                <Clock className="h-3.5 w-3.5" /> In Transit
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium capitalize",
+                  cancelled
+                    ? "bg-red-100 text-red-600"
+                    : order.status === "delivered"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gold-300 text-white",
+                )}
+              >
+                {cancelled ? (
+                  <XCircle className="h-3.5 w-3.5" />
+                ) : (
+                  <Clock className="h-3.5 w-3.5" />
+                )}
+                {order.status}
               </span>
             </div>
 
-            <div className="mt-10 flex justify-between">
-              {steps.map((s, i) => (
-                <div key={s.label} className="flex flex-1 flex-col items-center text-center">
-                  <div className="relative flex w-full items-center justify-center">
-                    {i > 0 && (
-                      <span
-                        className={cn(
-                          "absolute right-1/2 top-1/2 h-0.5 w-full -translate-y-1/2",
-                          s.done ? "bg-gold-400" : "bg-taupe/50",
-                        )}
-                      />
-                    )}
-                    <span
-                      className={cn(
-                        "relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-2",
-                        s.done
-                          ? "border-gold-400 bg-gold-300 text-white"
-                          : "border-taupe bg-ivory text-ink-muted",
-                      )}
+            {!cancelled && (
+              <div className="mt-10 flex justify-between">
+                {STEPS.map((s, i) => {
+                  const done = i <= currentStep;
+                  return (
+                    <div
+                      key={s.label}
+                      className="flex flex-1 flex-col items-center text-center"
                     >
-                      <s.icon className="h-5 w-5" strokeWidth={1.5} />
-                    </span>
-                  </div>
-                  <span className="mt-2 text-[0.65rem] uppercase tracking-[0.08em] text-ink-soft">
-                    {s.label}
-                  </span>
-                </div>
-              ))}
-            </div>
+                      <div className="relative flex w-full items-center justify-center">
+                        {i > 0 && (
+                          <span
+                            className={cn(
+                              "absolute right-1/2 top-1/2 h-0.5 w-full -translate-y-1/2",
+                              done ? "bg-gold-400" : "bg-taupe/50",
+                            )}
+                          />
+                        )}
+                        <span
+                          className={cn(
+                            "relative z-10 flex h-11 w-11 items-center justify-center rounded-full border-2",
+                            done
+                              ? "border-gold-400 bg-gold-300 text-white"
+                              : "border-taupe bg-ivory text-ink-muted",
+                          )}
+                        >
+                          <s.icon className="h-5 w-5" strokeWidth={1.5} />
+                        </span>
+                      </div>
+                      <span className="mt-2 text-[0.65rem] uppercase tracking-[0.08em] text-ink-soft">
+                        {s.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {order.items.length > 0 && (
+              <div className="mt-8 border-t border-line pt-5">
+                <p className="text-[0.7rem] uppercase tracking-[0.16em] text-ink-muted">
+                  Items
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-ink-soft">
+                  {order.items.map((it, i) => (
+                    <li key={i}>
+                      {it.title} × {it.quantity}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
         <p className="mt-8 text-center text-sm text-ink-muted">
-          Need help? <a href="/contact" className="text-gold-600 underline">Contact us</a> and
-          we&apos;ll track it for you.
+          Need help?{" "}
+          <a href="/contact" className="text-gold-600 underline">
+            Contact us
+          </a>{" "}
+          and we&apos;ll track it for you.
         </p>
       </div>
     </>

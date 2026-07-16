@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, Lock, CheckCircle2 } from "lucide-react";
+import { Check, Lock, CheckCircle2, AlertCircle } from "lucide-react";
 import { useCart, cartSubtotal } from "@/lib/store/cart";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { paymentOptions } from "@/lib/payment-methods";
+import { placeOrderAction } from "@/lib/orders/actions";
 import { FabricSwatch } from "@/components/product/fabric-swatch";
 import { Button } from "@/components/ui/button";
 import { formatPrice, cn } from "@/lib/utils";
@@ -19,6 +20,8 @@ export default function CheckoutPage() {
   const { items, clear } = useCart();
   const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [placed, setPlaced] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const subtotal = hydrated ? cartSubtotal(items) : 0;
   const shipping = subtotal >= FREE_SHIP || subtotal === 0 ? 0 : SHIP_FEE;
@@ -27,13 +30,38 @@ export default function CheckoutPage() {
   const option = paymentOptions.find((p) => p.id === payment)!;
   const dueNow = Math.round(total * option.advanceFraction);
 
-  function placeOrder(e: React.FormEvent) {
+  async function placeOrder(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    // Phase 2: POST to /api/orders -> Supabase (orders + order_items), decrement stock
-    const orderId = "HG-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-    setPlaced(orderId);
-    clear();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (submitting) return;
+    const fd = new FormData(e.currentTarget);
+    setSubmitting(true);
+    setError(null);
+
+    const res = await placeOrderAction({
+      name: String(fd.get("name") ?? ""),
+      email: String(fd.get("email") ?? ""),
+      phone: String(fd.get("phone") ?? ""),
+      address: String(fd.get("address") ?? ""),
+      city: String(fd.get("city") ?? ""),
+      postal: String(fd.get("postal") ?? ""),
+      notes: String(fd.get("notes") ?? ""),
+      payment,
+      items: items.map((i) => ({
+        productId: i.productId,
+        size: i.size,
+        color: i.color,
+        quantity: i.quantity,
+      })),
+    });
+
+    if (res.orderNumber) {
+      setPlaced(res.orderNumber);
+      clear();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      setError(res.error ?? "Something went wrong. Please try again.");
+      setSubmitting(false);
+    }
   }
 
   if (placed) {
@@ -198,8 +226,21 @@ export default function CheckoutPage() {
             )}
           </dl>
 
-          <Button type="submit" variant="dark" size="lg" className="mt-6 w-full">
-            <Lock className="h-4 w-4" /> Place Order
+          {error && (
+            <div className="mt-5 flex items-start gap-2.5 rounded-[2px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            variant="dark"
+            size="lg"
+            className="mt-6 w-full"
+            disabled={submitting || (hydrated && items.length === 0)}
+          >
+            <Lock className="h-4 w-4" /> {submitting ? "Placing Order…" : "Place Order"}
           </Button>
           <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-muted">
             <Check className="h-3.5 w-3.5 text-gold-500" /> Secure & encrypted checkout
