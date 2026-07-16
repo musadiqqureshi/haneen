@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/footer";
 import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { PageLoader } from "@/components/layout/page-loader";
 import { FloatingParticles } from "@/components/layout/floating-particles";
+import { StoreChrome } from "@/components/layout/store-chrome";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -71,12 +72,16 @@ export default function RootLayout({
       className={`${playfair.variable} ${cormorant.variable} ${inter.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-ivory text-ink antialiased">
-        <PageLoader />
-        <FloatingParticles />
-        <AnnouncementBar />
-        <Header />
+        <StoreChrome>
+          <PageLoader />
+          <FloatingParticles />
+          <AnnouncementBar />
+          <Header />
+        </StoreChrome>
         <main className="relative z-10 flex-1">{children}</main>
-        <Footer />
+        <StoreChrome>
+          <Footer />
+        </StoreChrome>
       </body>
     </html>
   );
