@@ -105,7 +105,7 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
         <Link
           href={`/product/${product.slug}`}
-          className="mt-1.5 font-serif text-lg leading-snug text-ink transition-colors hover:text-gold-600"
+          className="mt-1.5 font-display text-[1.05rem] font-medium leading-snug tracking-tight text-ink transition-colors hover:text-gold-700"
         >
           {product.title}
         </Link>

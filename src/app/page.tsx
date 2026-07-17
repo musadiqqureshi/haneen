@@ -3,6 +3,7 @@ import { PromiseStrip } from "@/components/home/promise-strip";
 import { FeaturedCategories } from "@/components/home/featured-categories";
 import { ProductRail } from "@/components/home/product-rail";
 import { SaleBanner } from "@/components/home/sale-banner";
+import { Editorial } from "@/components/home/editorial";
 import { Testimonials } from "@/components/home/testimonials";
 import { InstagramFeed } from "@/components/home/instagram-feed";
 import { getNewArrivals, getBestSellers } from "@/lib/data/catalog";
@@ -33,6 +34,7 @@ export default async function HomePage() {
         viewAllHref="/shop"
         tone="beige"
       />
+      <Editorial />
       <Testimonials />
       <InstagramFeed />
     </>
