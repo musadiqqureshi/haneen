@@ -1,34 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Lock, CheckCircle2, AlertCircle } from "lucide-react";
 import { useCart, cartSubtotal } from "@/lib/store/cart";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { paymentOptions } from "@/lib/payment-methods";
-import { placeOrderAction } from "@/lib/orders/actions";
+import {
+  placeOrderAction,
+  validateCouponAction,
+  getPaymentInstructionsAction,
+  getCheckoutConfigAction,
+} from "@/lib/orders/actions";
+import type { PaymentSettings } from "@/lib/settings";
 import { FabricSwatch } from "@/components/product/fabric-swatch";
 import { Button } from "@/components/ui/button";
 import { formatPrice, cn } from "@/lib/utils";
 import type { PaymentMethod } from "@/types";
 
-const FREE_SHIP = 15000;
-const SHIP_FEE = 250;
+/** Defaults used until the live store settings load. */
+const DEFAULT_CONFIG = {
+  shipping_fee: 250,
+  free_shipping_threshold: 15000,
+  advance_percent: 30,
+  cod_enabled: true,
+  advance_payment_enabled: true,
+};
 
 export default function CheckoutPage() {
   const hydrated = useHydrated();
   const { items, clear } = useCart();
   const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [placed, setPlaced] = useState<string | null>(null);
+  const [placedInfo, setPlacedInfo] = useState<{
+    advanceAmount: number;
+    method: PaymentMethod;
+  } | null>(null);
+  const [bank, setBank] = useState<PaymentSettings | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const subtotal = hydrated ? cartSubtotal(items) : 0;
-  const shipping = subtotal >= FREE_SHIP || subtotal === 0 ? 0 : SHIP_FEE;
-  const total = subtotal + shipping;
+  // Coupon
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(
+    null,
+  );
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
 
+  // Live store config (shipping, deposit %) — server stays authoritative.
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  useEffect(() => {
+    getCheckoutConfigAction()
+      .then(setConfig)
+      .catch(() => {});
+  }, []);
+
+  const subtotal = hydrated ? cartSubtotal(items) : 0;
+  const discount = coupon?.discount ?? 0;
+  const shipping =
+    subtotal >= config.free_shipping_threshold || subtotal === 0
+      ? 0
+      : config.shipping_fee;
+  const total = Math.max(0, subtotal - discount + shipping);
+
+  const methods = paymentOptions.filter((p) =>
+    p.id === "cod" ? config.cod_enabled : config.advance_payment_enabled,
+  );
   const option = paymentOptions.find((p) => p.id === payment)!;
-  const dueNow = Math.round(total * option.advanceFraction);
+  const dueNow =
+    payment === "advance"
+      ? Math.round((total * config.advance_percent) / 100)
+      : total;
+
+  async function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code || checkingCoupon) return;
+    setCheckingCoupon(true);
+    setCouponError(null);
+    const res = await validateCouponAction(code, subtotal);
+    if (res.error || !res.code) {
+      setCoupon(null);
+      setCouponError(res.error ?? "That code isn't valid.");
+    } else {
+      setCoupon({ code: res.code, discount: res.discount });
+    }
+    setCheckingCoupon(false);
+  }
 
   async function placeOrder(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,6 +104,7 @@ export default function CheckoutPage() {
       postal: String(fd.get("postal") ?? ""),
       notes: String(fd.get("notes") ?? ""),
       payment,
+      couponCode: coupon?.code,
       items: items.map((i) => ({
         productId: i.productId,
         size: i.size,
@@ -56,6 +115,12 @@ export default function CheckoutPage() {
 
     if (res.orderNumber) {
       setPlaced(res.orderNumber);
+      setPlacedInfo({ advanceAmount: res.advanceAmount ?? 0, method: payment });
+      if (payment === "advance") {
+        getPaymentInstructionsAction()
+          .then(setBank)
+          .catch(() => setBank(null));
+      }
       clear();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
@@ -65,6 +130,7 @@ export default function CheckoutPage() {
   }
 
   if (placed) {
+    const isAdvance = placedInfo?.method === "advance" && placedInfo.advanceAmount > 0;
     return (
       <div className="container-lux flex min-h-[60vh] flex-col items-center justify-center gap-4 py-20 text-center">
         <CheckCircle2 className="h-14 w-14 text-gold-500" strokeWidth={1.2} />
@@ -77,6 +143,43 @@ export default function CheckoutPage() {
         <p className="max-w-md text-sm text-ink-muted">
           Payment method: {option.label}. You can track your order status anytime.
         </p>
+
+        {isAdvance && (
+          <div className="mt-2 w-full max-w-md rounded-[3px] border border-gold-300 bg-gold-50/60 p-6 text-left">
+            <h2 className="font-display text-lg text-ink">
+              Complete your {formatPrice(placedInfo.advanceAmount)} deposit
+            </h2>
+            <p className="mt-1.5 text-sm text-ink-soft">
+              Your order is reserved. Transfer the deposit and the balance is paid
+              on delivery.
+            </p>
+
+            {bank ? (
+              <dl className="mt-4 space-y-1.5 text-sm">
+                {bank.bank_name && <BankRow label="Bank" value={bank.bank_name} />}
+                {bank.account_title && (
+                  <BankRow label="Account Title" value={bank.account_title} />
+                )}
+                {bank.account_number && (
+                  <BankRow label="Account #" value={bank.account_number} />
+                )}
+                {bank.iban && <BankRow label="IBAN" value={bank.iban} />}
+              </dl>
+            ) : (
+              <p className="mt-4 rounded-[2px] bg-ivory/80 px-3 py-2.5 text-sm text-ink-soft">
+                Our team will share the bank transfer details with you on WhatsApp
+                shortly.
+              </p>
+            )}
+
+            <p className="mt-4 text-xs text-ink-muted">
+              Please quote order{" "}
+              <span className="font-medium text-gold-700">#{placed}</span> as the
+              transfer reference, then send us the receipt.
+              {bank?.instructions ? ` ${bank.instructions}` : ""}
+            </p>
+          </div>
+        )}
         <div className="mt-4 flex gap-3">
           <Button asChild variant="dark">
             <Link href="/track-order">Track Order</Link>
@@ -128,7 +231,7 @@ export default function CheckoutPage() {
 
           <Fieldset legend="Payment Method">
             <div className="space-y-3">
-              {paymentOptions.map((opt) => (
+              {methods.map((opt) => (
                 <label
                   key={opt.id}
                   className={cn(
@@ -203,11 +306,65 @@ export default function CheckoutPage() {
               ))}
           </div>
 
+          {/* Coupon */}
+          <div className="mt-6 border-t border-line pt-5">
+            {coupon ? (
+              <div className="flex items-center justify-between rounded-[2px] border border-gold-300 bg-gold-50/70 px-3 py-2.5 text-sm">
+                <span className="flex items-center gap-2 text-ink">
+                  <Check className="h-4 w-4 text-gold-600" />
+                  <span className="font-medium uppercase tracking-wide">
+                    {coupon.code}
+                  </span>
+                  applied
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoupon(null);
+                    setCouponInput("");
+                  }}
+                  className="text-xs text-ink-muted underline hover:text-ink"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    placeholder="Discount code"
+                    aria-label="Discount code"
+                    className="h-11 flex-1 border border-line bg-ivory px-3 text-sm uppercase tracking-wide text-ink outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-ink-muted focus:border-gold-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyCoupon}
+                    disabled={checkingCoupon || !couponInput.trim()}
+                    className="h-11 border border-ink px-5 text-[0.7rem] font-medium uppercase tracking-[0.14em] text-ink transition-colors hover:bg-ink hover:text-ivory disabled:opacity-40"
+                  >
+                    {checkingCoupon ? "…" : "Apply"}
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="mt-2 text-xs text-red-500">{couponError}</p>
+                )}
+              </>
+            )}
+          </div>
+
           <dl className="mt-6 space-y-3 border-t border-line pt-5 text-sm">
             <div className="flex justify-between text-ink-soft">
               <dt>Subtotal</dt>
               <dd className="text-ink">{formatPrice(subtotal)}</dd>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-gold-700">
+                <dt>Discount ({coupon?.code})</dt>
+                <dd>− {formatPrice(discount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between text-ink-soft">
               <dt>Shipping</dt>
               <dd className="text-ink">
@@ -218,11 +375,17 @@ export default function CheckoutPage() {
               <dt className="font-medium text-ink">Total</dt>
               <dd className="font-display text-xl text-ink">{formatPrice(total)}</dd>
             </div>
-            {option.advanceFraction < 1 && (
-              <div className="flex justify-between text-gold-600">
-                <dt>Due now (advance)</dt>
-                <dd className="font-medium">{formatPrice(dueNow)}</dd>
-              </div>
+            {payment === "advance" && (
+              <>
+                <div className="flex justify-between text-gold-700">
+                  <dt>Due now ({config.advance_percent}% deposit)</dt>
+                  <dd className="font-medium">{formatPrice(dueNow)}</dd>
+                </div>
+                <div className="flex justify-between text-ink-soft">
+                  <dt>On delivery</dt>
+                  <dd>{formatPrice(Math.max(0, total - dueNow))}</dd>
+                </div>
+              </>
             )}
           </dl>
 
@@ -289,5 +452,14 @@ function Field({
         className="h-12 w-full border border-line bg-ivory px-4 text-sm text-ink outline-none transition-colors placeholder:text-ink-muted focus:border-gold-400"
       />
     </label>
+  );
+}
+
+function BankRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="text-ink-muted">{label}</dt>
+      <dd className="font-medium tabular-nums text-ink">{value}</dd>
+    </div>
   );
 }

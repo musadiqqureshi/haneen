@@ -122,12 +122,40 @@ export default async function AdminOrderDetail({
           <div className="space-y-4 rounded-lg border border-line bg-ivory p-5">
             <OrderStatusControl orderId={order.id} status={order.status} />
             <PaymentStatusControl orderId={order.id} status={order.payment_status} />
-            <p className="text-xs text-ink-muted">
-              Payment method:{" "}
-              <span className="font-medium uppercase text-ink-soft">
-                {order.payment_method}
-              </span>
-            </p>
+            <div className="space-y-1 border-t border-line pt-4 text-xs text-ink-muted">
+              <p>
+                Method:{" "}
+                <span className="font-medium uppercase text-ink-soft">
+                  {order.payment_method}
+                </span>
+              </p>
+              {Number(order.advance_amount) > 0 && (
+                <>
+                  <p>
+                    Deposit due:{" "}
+                    <span className="font-medium tabular-nums text-gold-700">
+                      {formatPrice(Number(order.advance_amount))}
+                    </span>
+                  </p>
+                  <p>
+                    Balance on delivery:{" "}
+                    <span className="font-medium tabular-nums text-ink-soft">
+                      {formatPrice(
+                        Math.max(0, Number(order.total) - Number(order.advance_amount)),
+                      )}
+                    </span>
+                  </p>
+                </>
+              )}
+              {order.coupon_code && (
+                <p>
+                  Coupon:{" "}
+                  <span className="font-medium uppercase text-ink-soft">
+                    {order.coupon_code}
+                  </span>
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="rounded-lg border border-line bg-ivory p-5 text-sm">

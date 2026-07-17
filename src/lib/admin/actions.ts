@@ -192,3 +192,160 @@ export async function saveProductAction(
   revalidatePath("/shop");
   return { success: true, savedSlug: row.slug };
 }
+
+// ---------- Settings --------------------------------------------------------
+const settingsSchema = z.object({
+  free_shipping_threshold: z.coerce.number().min(0),
+  shipping_fee: z.coerce.number().min(0),
+  advance_percent: z.coerce.number().min(1).max(100),
+  phone: z.string().trim().max(40).optional(),
+  email: z.string().trim().max(120).optional(),
+  whatsapp: z.string().trim().max(40).optional(),
+  instagram: z.string().trim().max(200).optional(),
+  bank_name: z.string().trim().max(120).optional(),
+  account_title: z.string().trim().max(120).optional(),
+  account_number: z.string().trim().max(60).optional(),
+  iban: z.string().trim().max(60).optional(),
+  instructions: z.string().trim().max(400).optional(),
+});
+
+export async function saveSettingsAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  await requireAdmin();
+
+  const parsed = settingsSchema.safeParse({
+    free_shipping_threshold: formData.get("free_shipping_threshold"),
+    shipping_fee: formData.get("shipping_fee"),
+    advance_percent: formData.get("advance_percent"),
+    phone: formData.get("phone") ?? "",
+    email: formData.get("email") ?? "",
+    whatsapp: formData.get("whatsapp") ?? "",
+    instagram: formData.get("instagram") ?? "",
+    bank_name: formData.get("bank_name") ?? "",
+    account_title: formData.get("account_title") ?? "",
+    account_number: formData.get("account_number") ?? "",
+    iban: formData.get("iban") ?? "",
+    instructions: formData.get("instructions") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  const d = parsed.data;
+
+  const admin = createAdminClient();
+
+  // Merge into the existing jsonb so unrelated keys survive.
+  const { data: existing } = await admin
+    .from("settings")
+    .select("key, value")
+    .in("key", ["store", "payment"]);
+  const prevOf = (k: string) =>
+    (existing?.find((r) => r.key === k)?.value ?? {}) as Record<string, unknown>;
+
+  const store = {
+    ...prevOf("store"),
+    free_shipping_threshold: d.free_shipping_threshold,
+    shipping_fee: d.shipping_fee,
+    advance_percent: d.advance_percent,
+    cod_enabled: formData.get("cod_enabled") === "on",
+    advance_payment_enabled: formData.get("advance_payment_enabled") === "on",
+    phone: d.phone ?? "",
+    email: d.email ?? "",
+    whatsapp: d.whatsapp ?? "",
+    instagram: d.instagram ?? "",
+  };
+  const payment = {
+    ...prevOf("payment"),
+    bank_name: d.bank_name ?? "",
+    account_title: d.account_title ?? "",
+    account_number: d.account_number ?? "",
+    iban: d.iban ?? "",
+    instructions: d.instructions ?? "",
+  };
+
+  const { error } = await admin
+    .from("settings")
+    .upsert([
+      { key: "store", value: store },
+      { key: "payment", value: payment },
+    ]);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/checkout");
+  return { success: true };
+}
+
+// ---------- Coupons ---------------------------------------------------------
+const couponSchema = z.object({
+  id: z.string().optional(),
+  code: z.string().trim().min(2, "Code is required").max(40),
+  description: z.string().trim().max(200).optional(),
+  discount_type: z.enum(["percent", "fixed"]),
+  amount: z.coerce.number().min(0, "Amount must be 0 or more"),
+  min_order: z.coerce.number().min(0),
+  max_uses: z.union([z.coerce.number().int().min(1), z.literal("")]).optional(),
+  expires_at: z.string().trim().optional(),
+});
+
+export async function saveCouponAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  await requireAdmin();
+  const parsed = couponSchema.safeParse({
+    id: (formData.get("id") as string) || undefined,
+    code: formData.get("code"),
+    description: formData.get("description") ?? "",
+    discount_type: formData.get("discount_type"),
+    amount: formData.get("amount"),
+    min_order: formData.get("min_order") ?? 0,
+    max_uses: formData.get("max_uses") ?? "",
+    expires_at: formData.get("expires_at") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error) };
+  const d = parsed.data;
+
+  const row = {
+    code: d.code.toUpperCase(),
+    description: d.description || null,
+    discount_type: d.discount_type,
+    amount: d.amount,
+    min_order: d.min_order,
+    max_uses: d.max_uses === "" || d.max_uses == null ? null : Number(d.max_uses),
+    expires_at: d.expires_at ? new Date(d.expires_at).toISOString() : null,
+    is_active: formData.get("is_active") === "on",
+  };
+
+  const admin = createAdminClient();
+  const { error } = d.id
+    ? await admin.from("coupons").update(row).eq("id", d.id)
+    : await admin.from("coupons").insert(row);
+  if (error) {
+    return {
+      error: error.message.includes("duplicate")
+        ? "A coupon with that code already exists."
+        : error.message,
+    };
+  }
+
+  revalidatePath("/admin/coupons");
+  return { success: true };
+}
+
+export async function deleteCouponAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminClient();
+  await admin.from("coupons").delete().eq("id", String(formData.get("couponId")));
+  revalidatePath("/admin/coupons");
+}
+
+export async function toggleCouponAction(formData: FormData) {
+  await requireAdmin();
+  const admin = createAdminClient();
+  await admin
+    .from("coupons")
+    .update({ is_active: formData.get("active") === "true" })
+    .eq("id", String(formData.get("couponId")));
+  revalidatePath("/admin/coupons");
+}

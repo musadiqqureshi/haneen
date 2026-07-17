@@ -1,11 +1,109 @@
 "use server";
 
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getStoreSettings,
+  getPaymentSettings,
+  hasBankDetails,
+  type PaymentSettings,
+} from "@/lib/settings";
+import type { Database } from "@/lib/supabase/database.types";
 
-const FREE_SHIP = 15000;
-const SHIP_FEE = 250;
+type Admin = SupabaseClient<Database>;
+
+/** Shipping + deposit config for the checkout UI (server is authoritative). */
+export async function getCheckoutConfigAction(): Promise<{
+  shipping_fee: number;
+  free_shipping_threshold: number;
+  advance_percent: number;
+  cod_enabled: boolean;
+  advance_payment_enabled: boolean;
+}> {
+  const s = await getStoreSettings();
+  return {
+    shipping_fee: s.shipping_fee,
+    free_shipping_threshold: s.free_shipping_threshold,
+    advance_percent: s.advance_percent,
+    cod_enabled: s.cod_enabled,
+    advance_payment_enabled: s.advance_payment_enabled,
+  };
+}
+
+interface CouponResult {
+  id?: string;
+  code?: string;
+  usedCount?: number;
+  discount: number;
+  error?: string;
+}
+
+/**
+ * Server-side coupon validation. Never trust a client-supplied discount —
+ * this recomputes it from the DB every time.
+ */
+async function resolveCoupon(
+  admin: Admin,
+  rawCode: string | undefined,
+  subtotal: number,
+): Promise<CouponResult> {
+  const code = rawCode?.trim();
+  if (!code) return { discount: 0 };
+
+  const { data: c } = await admin
+    .from("coupons")
+    .select("*")
+    .ilike("code", code)
+    .maybeSingle();
+
+  if (!c || !c.is_active) return { discount: 0, error: "That code isn't valid." };
+
+  const now = Date.now();
+  if (c.starts_at && new Date(c.starts_at).getTime() > now)
+    return { discount: 0, error: "That code isn't active yet." };
+  if (c.expires_at && new Date(c.expires_at).getTime() < now)
+    return { discount: 0, error: "That code has expired." };
+  if (c.max_uses != null && c.used_count >= c.max_uses)
+    return { discount: 0, error: "That code has reached its limit." };
+  if (subtotal < Number(c.min_order))
+    return {
+      discount: 0,
+      error: `Spend ${new Intl.NumberFormat("en-PK", {
+        style: "currency",
+        currency: "PKR",
+        maximumFractionDigits: 0,
+      }).format(Number(c.min_order))} to use this code.`,
+    };
+
+  const raw =
+    c.discount_type === "percent"
+      ? (subtotal * Number(c.amount)) / 100
+      : Number(c.amount);
+  const discount = Math.min(Math.round(raw), subtotal);
+  return { id: c.id, code: c.code, usedCount: c.used_count, discount };
+}
+
+/**
+ * Bank-transfer details shown after an advance-payment order.
+ * Returns null until the store owner fills them in under Admin → Settings,
+ * so we never show placeholder account numbers.
+ */
+export async function getPaymentInstructionsAction(): Promise<PaymentSettings | null> {
+  const p = await getPaymentSettings();
+  return hasBankDetails(p) ? p : null;
+}
+
+/** Live coupon check for the checkout UI. */
+export async function validateCouponAction(
+  code: string,
+  subtotal: number,
+): Promise<{ discount: number; code?: string; error?: string }> {
+  if (!code?.trim()) return { discount: 0 };
+  const admin = createAdminClient();
+  return resolveCoupon(admin, code, subtotal);
+}
 
 const itemSchema = z.object({
   productId: z.string().min(1),
@@ -23,6 +121,7 @@ const orderSchema = z.object({
   postal: z.string().trim().optional(),
   notes: z.string().trim().max(500).optional(),
   payment: z.enum(["cod", "advance"]).default("cod"),
+  couponCode: z.string().trim().max(40).optional(),
   items: z.array(itemSchema).min(1, "Your bag is empty"),
 });
 
@@ -31,6 +130,8 @@ export type PlaceOrderInput = z.input<typeof orderSchema>;
 export interface PlaceOrderResult {
   orderNumber?: string;
   total?: number;
+  discount?: number;
+  advanceAmount?: number;
   error?: string;
   fieldErrors?: Record<string, string>;
 }
@@ -84,8 +185,20 @@ export async function placeOrderAction(
     });
   }
 
-  const shippingFee = subtotal >= FREE_SHIP ? 0 : SHIP_FEE;
-  const total = subtotal + shippingFee;
+  // Coupon (re-validated server side) and totals — shipping comes from the
+  // store settings so Admin → Settings is authoritative.
+  const settings = await getStoreSettings();
+  const coupon = await resolveCoupon(admin, data.couponCode, subtotal);
+  const discount = coupon.discount;
+  const shippingFee =
+    subtotal >= settings.free_shipping_threshold ? 0 : settings.shipping_fee;
+  const total = Math.max(0, subtotal - discount + shippingFee);
+
+  // Advance deposit (percentage of total) when paying in advance.
+  const advanceAmount =
+    data.payment === "advance"
+      ? Math.round((total * settings.advance_percent) / 100)
+      : 0;
 
   // Link the order to a signed-in customer if there is one.
   let userId: string | null = null;
@@ -115,12 +228,13 @@ export async function placeOrderAction(
         country: "Pakistan",
       },
       subtotal,
-      discount: 0,
+      discount,
       shipping_fee: shippingFee,
       total,
+      coupon_code: coupon.code ?? null,
       payment_method: data.payment,
       payment_status: "unpaid",
-      advance_amount: 0,
+      advance_amount: advanceAmount,
       notes: data.notes ?? null,
     })
     .select("id, order_number")
@@ -161,7 +275,34 @@ export async function placeOrderAction(
     ),
   );
 
-  return { orderNumber: order.order_number, total };
+  // Record the advance deposit as a pending payment, and bump coupon usage.
+  const followUps: PromiseLike<unknown>[] = [];
+  if (advanceAmount > 0) {
+    followUps.push(
+      admin.from("payments").insert({
+        order_id: order.id,
+        method: "advance",
+        amount: advanceAmount,
+        status: "unpaid",
+      }),
+    );
+  }
+  if (coupon.id) {
+    followUps.push(
+      admin
+        .from("coupons")
+        .update({ used_count: (coupon.usedCount ?? 0) + 1 })
+        .eq("id", coupon.id),
+    );
+  }
+  if (followUps.length) await Promise.all(followUps);
+
+  return {
+    orderNumber: order.order_number,
+    total,
+    discount,
+    advanceAmount,
+  };
 }
 
 // ---------- Track order ----------------------------------------------------

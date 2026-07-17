@@ -29,9 +29,8 @@ export const paymentOptions: PaymentOption[] = [
     id: "advance",
     label: "Advance Payment (Deposit)",
     description:
-      "Reserve your order with a 30% advance and pay the balance on delivery. Coming soon.",
-    enabled: false,
+      "Reserve your order with a 30% bank-transfer deposit and pay the balance on delivery. We'll share transfer details right after checkout.",
+    enabled: true,
     advanceFraction: 0.3,
-    badge: "Coming Soon",
   },
 ];

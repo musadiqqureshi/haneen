@@ -9,6 +9,8 @@ import {
   Users,
   Star,
   Store,
+  Ticket,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,8 @@ const links = [
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/customers", label: "Customers", icon: Users },
+  { href: "/admin/coupons", label: "Coupons", icon: Ticket },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminNav() {
