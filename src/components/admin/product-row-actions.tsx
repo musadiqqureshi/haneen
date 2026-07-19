@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Eye, EyeOff, Copy } from "lucide-react";
 import {
   toggleProductActiveAction,
   deleteProductAction,
+  duplicateProductAction,
 } from "@/lib/admin/actions";
 
 export function ProductRowActions({
@@ -35,6 +36,15 @@ export function ProductRowActions({
       >
         <Pencil className="h-4 w-4" />
       </Link>
+      <form action={duplicateProductAction}>
+        <input type="hidden" name="productId" value={id} />
+        <button
+          title="Duplicate"
+          className="rounded-md p-2 text-ink-soft hover:bg-beige hover:text-ink"
+        >
+          <Copy className="h-4 w-4" />
+        </button>
+      </form>
       <form action={toggleProductActiveAction}>
         <input type="hidden" name="productId" value={id} />
         <input type="hidden" name="active" value={(!isActive).toString()} />

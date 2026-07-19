@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { saveProductAction, type AdminFormState } from "@/lib/admin/actions";
+import { ImageUploader } from "@/components/admin/image-uploader";
 import { cn } from "@/lib/utils";
 
 export interface ProductInitial {
@@ -19,6 +20,10 @@ export interface ProductInitial {
   color_hex?: string;
   tags?: string[];
   images?: { url: string }[];
+  barcode?: string | null;
+  video_url?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
   featured?: boolean;
   best_seller?: boolean;
   new_arrival?: boolean;
@@ -181,18 +186,58 @@ export function ProductForm({ initial = {} }: { initial?: ProductInitial }) {
       </div>
 
       <div>
-        <label className={label}>Image URLs (one per line — first is primary)</label>
-        <textarea
-          name="images"
-          defaultValue={initial.images?.map((i) => i.url).join("\n")}
-          rows={3}
-          className={cn(input, "h-auto py-2.5 font-mono text-xs")}
-          placeholder={"https://…/product-images/01-1.jpg\nhttps://…/product-images/01-2.jpg"}
-        />
-        <p className="mt-1 text-xs text-ink-muted">
-          Upload photos to the <code>product-images</code> bucket in Supabase,
-          then paste their public URLs here.
+        <label className={label}>Product Images</label>
+        <ImageUploader initial={initial.images?.map((i) => i.url) ?? []} />
+      </div>
+
+      {/* Media & identifiers */}
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label className={label}>Barcode (optional)</label>
+          <input
+            name="barcode"
+            defaultValue={initial.barcode ?? ""}
+            className={input}
+            placeholder="e.g. 8964000123456"
+          />
+        </div>
+        <div>
+          <label className={label}>Video URL (optional)</label>
+          <input
+            name="video_url"
+            defaultValue={initial.video_url ?? ""}
+            className={input}
+            placeholder="https://…/reel.mp4"
+          />
+        </div>
+      </div>
+
+      {/* SEO */}
+      <div className="rounded-lg border border-line bg-beige/30 p-5">
+        <p className="mb-4 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-ink">
+          SEO
         </p>
+        <div className="space-y-4">
+          <div>
+            <label className={label}>Meta Title</label>
+            <input
+              name="seo_title"
+              defaultValue={initial.seo_title ?? ""}
+              className={input}
+              placeholder="Defaults to the product title"
+            />
+          </div>
+          <div>
+            <label className={label}>Meta Description</label>
+            <textarea
+              name="seo_description"
+              defaultValue={initial.seo_description ?? ""}
+              rows={2}
+              className={cn(input, "h-auto py-2.5")}
+              placeholder="Defaults to the short description"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-5">

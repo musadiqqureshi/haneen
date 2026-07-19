@@ -219,6 +219,16 @@ export type BannerRow = Timestamps & {
   ends_at: string | null;
 };
 
+export type StockAdjustmentRow = {
+  id: string;
+  product_id: string;
+  delta: number;
+  reason: string;
+  note: string | null;
+  resulting_stock: number;
+  created_at: string;
+};
+
 export type NewsletterRow = {
   id: string;
   email: string;
@@ -265,6 +275,7 @@ export type Database = {
       orders: TableCfg<OrderRow>;
       order_items: TableCfg<OrderItemRow>;
       order_events: TableCfg<OrderEventRow>;
+      stock_adjustments: TableCfg<StockAdjustmentRow>;
       payments: TableCfg<PaymentRow>;
       banners: TableCfg<BannerRow>;
       newsletter_subscribers: TableCfg<NewsletterRow>;

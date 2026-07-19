@@ -119,6 +119,42 @@ export async function deleteProductAction(formData: FormData) {
   revalidatePath("/admin/products");
 }
 
+export async function duplicateProductAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("productId"));
+  const admin = createAdminClient();
+  const { data: p } = await admin.from("products").select("*").eq("id", id).single();
+  if (!p) return;
+
+  const title = `${p.title} (Copy)`;
+  let slug = slugify(title);
+  const { data: clash } = await admin
+    .from("products")
+    .select("slug")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (clash) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+
+  const {
+    id: _id,
+    created_at: _c,
+    updated_at: _u,
+    ...rest
+  } = p;
+  void _id;
+  void _c;
+  void _u;
+
+  await admin.from("products").insert({
+    ...rest,
+    title,
+    slug,
+    sku: null,
+    is_active: false, // start as a hidden draft
+  });
+  revalidatePath("/admin/products");
+}
+
 const productSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(2, "Title is required"),
@@ -139,6 +175,10 @@ const productSchema = z.object({
   color_hex: z.string().trim().optional(),
   tags: z.string().trim().optional(),
   images: z.string().trim().optional(), // one URL per line
+  barcode: z.string().trim().max(64).optional(),
+  video_url: z.string().trim().max(500).optional(),
+  seo_title: z.string().trim().max(160).optional(),
+  seo_description: z.string().trim().max(320).optional(),
   featured: z.boolean().optional(),
   best_seller: z.boolean().optional(),
   new_arrival: z.boolean().optional(),
@@ -164,6 +204,10 @@ export async function saveProductAction(
     color_hex: formData.get("color_hex") ?? "",
     tags: formData.get("tags") ?? "",
     images: formData.get("images") ?? "",
+    barcode: formData.get("barcode") ?? "",
+    video_url: formData.get("video_url") ?? "",
+    seo_title: formData.get("seo_title") ?? "",
+    seo_description: formData.get("seo_description") ?? "",
     featured: formData.get("featured") === "on",
     best_seller: formData.get("best_seller") === "on",
     new_arrival: formData.get("new_arrival") === "on",
@@ -204,6 +248,12 @@ export async function saveProductAction(
     tags,
     collections: ["new-arrivals", ...(d.sale_price ? ["sale"] : [])],
     sizes: [] as string[],
+    barcode: d.barcode || null,
+    video_url: d.video_url || null,
+    seo: {
+      title: d.seo_title || d.title,
+      description: d.seo_description || d.short_description || "",
+    },
     featured: !!d.featured,
     best_seller: !!d.best_seller,
     new_arrival: !!d.new_arrival,
@@ -379,4 +429,38 @@ export async function toggleCouponAction(formData: FormData) {
     .update({ is_active: formData.get("active") === "true" })
     .eq("id", String(formData.get("couponId")));
   revalidatePath("/admin/coupons");
+}
+
+// ---------- Inventory -------------------------------------------------------
+const STOCK_REASONS = ["restock", "damaged", "correction", "return", "manual"];
+
+export async function adjustStockAction(formData: FormData) {
+  await requireAdmin();
+  const productId = String(formData.get("productId"));
+  const change = Math.trunc(Number(formData.get("change")));
+  const reasonRaw = String(formData.get("reason") || "manual");
+  const reason = STOCK_REASONS.includes(reasonRaw) ? reasonRaw : "manual";
+  const note = String(formData.get("note") || "").trim() || null;
+  if (!productId || !Number.isFinite(change) || change === 0) return;
+
+  const admin = createAdminClient();
+  const { data: p } = await admin
+    .from("products")
+    .select("stock")
+    .eq("id", productId)
+    .single();
+  if (!p) return;
+
+  const resulting = Math.max(0, (p.stock ?? 0) + change);
+  await admin.from("products").update({ stock: resulting }).eq("id", productId);
+  await admin.from("stock_adjustments").insert({
+    product_id: productId,
+    delta: change,
+    reason,
+    note,
+    resulting_stock: resulting,
+  });
+
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin/products");
 }

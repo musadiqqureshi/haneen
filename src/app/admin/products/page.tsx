@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageTitle } from "@/components/admin/ui";
 import { ProductRowActions } from "@/components/admin/product-row-actions";
+import { ImportExport } from "@/components/admin/import-export";
 import { formatPrice, cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +37,15 @@ export default async function AdminProductsPage({
             : `${products?.length ?? 0} products`
         }
         action={
-          <Link
-            href="/admin/products/new"
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-ink px-5 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-ivory transition-colors hover:bg-gold-700"
-          >
-            <Plus className="h-4 w-4" /> Add Product
-          </Link>
+          <div className="flex flex-wrap items-start gap-2">
+            <ImportExport />
+            <Link
+              href="/admin/products/new"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-ink px-5 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-ivory transition-colors hover:bg-gold-700"
+            >
+              <Plus className="h-4 w-4" /> Add Product
+            </Link>
+          </div>
         }
       />
 
