@@ -15,8 +15,10 @@ export type OrderStatus =
   | "pending"
   | "confirmed"
   | "processing"
+  | "packed"
   | "shipped"
   | "delivered"
+  | "returned"
   | "cancelled"
   | "refunded";
 export type PaymentMethod = "cod" | "advance";
@@ -165,6 +167,17 @@ export type OrderRow = Timestamps & {
   payment_status: PaymentStatus;
   advance_amount: number;
   notes: string | null;
+  courier: string | null;
+  tracking_number: string | null;
+  internal_notes: string | null;
+};
+
+export type OrderEventRow = {
+  id: string;
+  order_id: string;
+  status: OrderStatus | null;
+  note: string | null;
+  created_at: string;
 };
 
 export type OrderItemRow = {
@@ -251,6 +264,7 @@ export type Database = {
       coupons: TableCfg<CouponRow>;
       orders: TableCfg<OrderRow>;
       order_items: TableCfg<OrderItemRow>;
+      order_events: TableCfg<OrderEventRow>;
       payments: TableCfg<PaymentRow>;
       banners: TableCfg<BannerRow>;
       newsletter_subscribers: TableCfg<NewsletterRow>;

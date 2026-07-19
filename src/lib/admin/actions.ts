@@ -27,12 +27,43 @@ const ORDER_STATUSES = [
   "pending",
   "confirmed",
   "processing",
+  "packed",
   "shipped",
   "delivered",
+  "returned",
   "cancelled",
   "refunded",
 ] as const;
 const PAYMENT_STATUSES = ["unpaid", "partial", "paid", "refunded", "failed"] as const;
+
+export async function updateOrderLogisticsAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("orderId"));
+  const admin = createAdminClient();
+  await admin
+    .from("orders")
+    .update({
+      courier: (String(formData.get("courier") ?? "").trim() || null) as never,
+      tracking_number: (String(formData.get("tracking_number") ?? "").trim() ||
+        null) as never,
+    })
+    .eq("id", id);
+  revalidatePath(`/admin/orders/${id}`);
+}
+
+export async function saveInternalNoteAction(formData: FormData) {
+  await requireAdmin();
+  const id = String(formData.get("orderId"));
+  const admin = createAdminClient();
+  await admin
+    .from("orders")
+    .update({
+      internal_notes: (String(formData.get("internal_notes") ?? "").trim() ||
+        null) as never,
+    })
+    .eq("id", id);
+  revalidatePath(`/admin/orders/${id}`);
+}
 
 export async function updateOrderStatusAction(formData: FormData) {
   await requireAdmin();

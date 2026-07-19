@@ -128,6 +128,7 @@ const orderSchema = z.object({
 export type PlaceOrderInput = z.input<typeof orderSchema>;
 
 export interface PlaceOrderResult {
+  orderId?: string;
   orderNumber?: string;
   total?: number;
   discount?: number;
@@ -298,6 +299,7 @@ export async function placeOrderAction(
   if (followUps.length) await Promise.all(followUps);
 
   return {
+    orderId: order.id,
     orderNumber: order.order_number,
     total,
     discount,
@@ -312,11 +314,14 @@ const trackSchema = z.object({
 });
 
 export interface TrackedOrder {
+  id: string;
   orderNumber: string;
   status: string;
   total: number;
   paymentMethod: string;
   createdAt: string;
+  courier: string | null;
+  trackingNumber: string | null;
   items: { title: string; quantity: number }[];
 }
 
@@ -335,7 +340,9 @@ export async function trackOrderAction(
   const admin = createAdminClient();
   const { data: order } = await admin
     .from("orders")
-    .select("id, order_number, status, total, payment_method, created_at, email")
+    .select(
+      "id, order_number, status, total, payment_method, created_at, email, courier, tracking_number",
+    )
     .ilike("order_number", parsed.data.orderNumber.trim())
     .ilike("email", parsed.data.email.trim())
     .maybeSingle();
@@ -352,11 +359,14 @@ export async function trackOrderAction(
 
   return {
     order: {
+      id: order.id,
       orderNumber: order.order_number,
       status: order.status,
       total: Number(order.total),
       paymentMethod: order.payment_method,
       createdAt: order.created_at,
+      courier: order.courier ?? null,
+      trackingNumber: order.tracking_number ?? null,
       items: items ?? [],
     },
   };

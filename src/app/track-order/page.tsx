@@ -19,6 +19,7 @@ const STATUS_STEP: Record<string, number> = {
   pending: 0,
   confirmed: 0,
   processing: 1,
+  packed: 1,
   shipped: 2,
   delivered: 3,
 };
@@ -38,7 +39,8 @@ export default function TrackOrderPage() {
     error?: string;
   });
   const order = state.order;
-  const cancelled = order && ["cancelled", "refunded"].includes(order.status);
+  const cancelled =
+    order && ["cancelled", "refunded", "returned"].includes(order.status);
   const currentStep = order ? STATUS_STEP[order.status] ?? 0 : 0;
 
   return (
@@ -153,6 +155,16 @@ export default function TrackOrderPage() {
               </div>
             )}
 
+            {order.trackingNumber && (
+              <div className="mt-8 flex items-center gap-2.5 rounded-[2px] border border-gold-300 bg-gold-50/60 px-4 py-3 text-sm text-ink">
+                <Truck className="h-4 w-4 shrink-0 text-gold-600" />
+                <span>
+                  {order.courier ? `${order.courier} — ` : ""}Tracking:{" "}
+                  <span className="font-medium">{order.trackingNumber}</span>
+                </span>
+              </div>
+            )}
+
             {order.items.length > 0 && (
               <div className="mt-8 border-t border-line pt-5">
                 <p className="text-[0.7rem] uppercase tracking-[0.16em] text-ink-muted">
@@ -167,6 +179,14 @@ export default function TrackOrderPage() {
                 </ul>
               </div>
             )}
+
+            <div className="mt-8 border-t border-line pt-5">
+              <Button asChild variant="outline" size="sm">
+                <a href={`/invoice/${order.id}`} target="_blank" rel="noreferrer">
+                  View / Download Invoice
+                </a>
+              </Button>
+            </div>
           </div>
         )}
 

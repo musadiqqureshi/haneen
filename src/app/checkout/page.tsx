@@ -33,6 +33,7 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState<PaymentMethod>("cod");
   const [placed, setPlaced] = useState<string | null>(null);
   const [placedInfo, setPlacedInfo] = useState<{
+    orderId: string;
     advanceAmount: number;
     method: PaymentMethod;
   } | null>(null);
@@ -115,7 +116,11 @@ export default function CheckoutPage() {
 
     if (res.orderNumber) {
       setPlaced(res.orderNumber);
-      setPlacedInfo({ advanceAmount: res.advanceAmount ?? 0, method: payment });
+      setPlacedInfo({
+        orderId: res.orderId ?? "",
+        advanceAmount: res.advanceAmount ?? 0,
+        method: payment,
+      });
       if (payment === "advance") {
         getPaymentInstructionsAction()
           .then(setBank)
@@ -180,11 +185,18 @@ export default function CheckoutPage() {
             </p>
           </div>
         )}
-        <div className="mt-4 flex gap-3">
-          <Button asChild variant="dark">
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
+          {placedInfo?.orderId && (
+            <Button asChild variant="dark">
+              <a href={`/invoice/${placedInfo.orderId}`} target="_blank" rel="noreferrer">
+                View Invoice
+              </a>
+            </Button>
+          )}
+          <Button asChild variant="outline">
             <Link href="/track-order">Track Order</Link>
           </Button>
-          <Button asChild variant="outline">
+          <Button asChild variant="ghost">
             <Link href="/shop">Continue Shopping</Link>
           </Button>
         </div>
