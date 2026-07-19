@@ -5,21 +5,46 @@ import { formatPrice } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrdersPage() {
+const STATUSES = [
+  "pending",
+  "confirmed",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "refunded",
+] as const;
+
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status: raw } = await searchParams;
+  // Only accept a real lifecycle status — ignore anything else in the URL.
+  const status = (STATUSES as readonly string[]).includes(raw ?? "")
+    ? (raw as (typeof STATUSES)[number])
+    : undefined;
+
   const admin = createAdminClient();
-  const { data: orders } = await admin
+  let query = admin
     .from("orders")
     .select(
       "id, order_number, customer_name, email, total, status, payment_method, payment_status, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(200);
+  if (status) query = query.eq("status", status);
+
+  const { data: orders } = await query;
 
   return (
     <>
       <PageTitle
-        title="Orders"
-        subtitle={`${orders?.length ?? 0} order${orders?.length === 1 ? "" : "s"}`}
+        title={status ? `${status[0].toUpperCase()}${status.slice(1)} Orders` : "Orders"}
+        subtitle={`${orders?.length ?? 0} order${orders?.length === 1 ? "" : "s"}${
+          status ? " in this status" : ""
+        }`}
       />
 
       {orders && orders.length > 0 ? (

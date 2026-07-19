@@ -8,20 +8,33 @@ import { formatPrice, cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const admin = createAdminClient();
-  const { data: products } = await admin
+
+  let query = admin
     .from("products")
     .select(
       "id, slug, sku, title, category_slug, price, sale_price, stock, is_active, images",
     )
     .order("created_at", { ascending: false });
+  if (q) query = query.ilike("title", `%${q}%`);
+
+  const { data: products } = await query;
 
   return (
     <>
       <PageTitle
         title="Products"
-        subtitle={`${products?.length ?? 0} products`}
+        subtitle={
+          q
+            ? `${products?.length ?? 0} matching “${q}”`
+            : `${products?.length ?? 0} products`
+        }
         action={
           <Link
             href="/admin/products/new"
